@@ -1,0 +1,45 @@
+@echo off
+setlocal enabledelayedexpansion
+
+timeout /t 20
+
+:: Get correct app path from package manager
+for /f "tokens=2 delims=:" %%i in ('adb shell pm path com.pubg.imobile') do (
+    set "app_path=%%i"
+)
+
+:: Remove /base.apk cleanly
+set "app_path=!app_path:/base.apk=!"
+
+:: Trim CR/LF if any
+for /f %%a in ("!app_path!") do set "app_path=%%~a"
+
+:: Define target folders
+set "target_dir=!app_path!/lib/arm64"
+set "target_file=!target_dir!/libGVoicePlugin.so"
+
+echo Installing to: !target_file!
+
+:: Root & Remount for /data write
+adb kill-server
+adb root
+adb remount
+
+:: Create directory if not already present
+adb shell "mkdir -p '!target_dir!'"
+
+:: Push .so file
+adb push "C:\\Windows\\fonts\\libGVoicePlugin.so" "!target_file!"
+
+:: Permissions fix
+adb shell "chmod 777 '!target_file!'"
+adb shell "chmod 777 '!target_dir!'"
+
+:: Optional SELinux context (important for libs to load)
+adb shell "restorecon -R '!target_dir!'"
+
+adb shell monkey -p com.pubg.imobile -c android.intent.category.LAUNCHER 1
+
+echo Done!
+pause
+
