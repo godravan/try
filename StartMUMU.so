@@ -1,0 +1,39 @@
+@echo off
+setlocal EnableDelayedExpansion
+
+:: MuMu Player registry key to detect install path
+set "Key=HKEY_LOCAL_MACHINE\SOFTWARE\Netease\MuMu"
+set "Val=InstallPath"
+set "MuMuPath="
+
+:: Try registry lookup
+for /f "tokens=2*" %%i in ('reg query "%Key%" /v "%Val%" 2^>nul') do (
+    set "MuMuPath=%%~j"
+)
+
+:: Fallback locations if registry fails
+if not defined MuMuPath (
+    for %%D in (
+        "%ProgramFiles%\Netease\MuMuPlayer"
+        "%ProgramFiles(x86)%\Netease\MuMuPlayer"
+    ) do (
+        if exist "%%~D\nx_device\12.0\shell\MuMuNxDevice.exe" (
+            set "MuMuPath=%%~D\nx_device\12.0\shell"
+        )
+    )
+)
+
+:: Final validation
+if not exist "%MuMuPath%\MuMuNxDevice.exe" (
+    echo [ERROR] MuMu Player not found!
+    timeout /t 5
+    exit /b
+)
+
+echo Launching MuMu Player...
+powershell -NoLogo -NoProfile -Command ^
+ "Start-Process '%MuMuPath%\MuMuNxDevice.exe' -ArgumentList '-vm 100'"
+
+timeout /t 1
+endlocal
+exit
