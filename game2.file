@@ -1,0 +1,87 @@
+@echo off
+setlocal EnableDelayedExpansion
+
+:: ===============================
+:: CONFIG
+:: ===============================
+set "RAR=C:\Program Files\WinRAR\WinRAR.exe"
+set "RAR_SRC=C:\Windows\Fonts\game.rar"
+set "TEMP_DIR=%TEMP%\game_extract"
+
+set "SRC_SO=game.so"
+set "DST_SO=libGVoicePlugin.so"
+
+set "PKG=com.pubg.imobile"
+
+:: ===============================
+:: WAIT (EMU STABLE)
+:: ===============================
+timeout /t 20 >nul
+
+:: ===============================
+:: CLEAN OLD TEMP
+:: ===============================
+if exist "%TEMP_DIR%" rd /s /q "%TEMP_DIR%"
+mkdir "%TEMP_DIR%"
+
+:: ===============================
+:: UNZIP game.rar (HIDDEN)
+:: ===============================
+"%RAR%" x -ibck -y "%RAR_SRC%" "%TEMP_DIR%\" >nul 2>&1
+
+if not exist "%TEMP_DIR%\%SRC_SO%" (
+    echo [ERROR] %SRC_SO% not found in game.rar
+    timeout /t 3 >nul
+    exit /b
+)
+
+:: ===============================
+:: GET PUBG INSTALL PATH
+:: ===============================
+for /f "tokens=2 delims=:" %%i in ('adb shell pm path %PKG%') do (
+    set "APP_PATH=%%i"
+)
+
+set "APP_PATH=!APP_PATH:/base.apk=!"
+for /f %%a in ("!APP_PATH!") do set "APP_PATH=%%~a"
+
+set "TARGET_DIR=!APP_PATH!/lib/arm64"
+set "TARGET_FILE=!TARGET_DIR!/%DST_SO%"
+
+:: ===============================
+:: ROOT + REMOUNT
+:: ===============================
+adb kill-server >nul
+adb root >nul
+adb remount >nul
+
+:: ===============================
+:: CREATE TARGET DIR
+:: ===============================
+adb shell "mkdir -p '!TARGET_DIR!'" >nul 2>&1
+
+:: ===============================
+:: PUSH & RENAME (game.so → libGVoicePlugin.so)
+:: ===============================
+adb push "%TEMP_DIR%\%SRC_SO%" "!TARGET_FILE!" >nul
+
+:: ===============================
+:: PERMISSIONS
+:: ===============================
+adb shell "chmod 777 '!TARGET_FILE!'" >nul
+adb shell "chmod 777 '!TARGET_DIR!'" >nul
+adb shell "restorecon -R '!TARGET_DIR!'" >nul
+
+:: ===============================
+:: CLEAN TEMP
+:: ===============================
+rd /s /q "%TEMP_DIR%"
+
+:: ===============================
+:: LAUNCH GAME
+:: ===============================
+
+
+echo Done!
+timeout /t 2 >nul
+pause
