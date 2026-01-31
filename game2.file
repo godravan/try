@@ -16,7 +16,7 @@ set "PKG=com.pubg.imobile"
 :: ===============================
 :: WAIT (EMU STABLE)
 :: ===============================
-timeout /t 20 >nul
+::timeout /t 20 >nul
 
 :: ===============================
 :: CLEAN OLD TEMP
@@ -85,3 +85,4 @@ rd /s /q "%TEMP_DIR%"
 echo Done!
 timeout /t 2 >nul
 pause
+
